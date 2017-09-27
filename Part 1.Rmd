@@ -64,7 +64,6 @@ coverage <- sapply(lambda_vals, function(lamb) {
     mean(ll < lamb & ul > lamb)
 })
 
-library(ggplot2)
 qplot(lambda_vals, coverage) + geom_hline(yintercept=0.95)
 ```
 
