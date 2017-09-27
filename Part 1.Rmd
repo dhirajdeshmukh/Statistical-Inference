@@ -32,7 +32,7 @@ We will check if this is the case.
 
 ```{r}
 
-set.seed(1234)
+set.seed(3)
 
 exp_sample_means <- NULL
 for(i in 1:1000) {
