@@ -2,7 +2,6 @@
 title: "Simulation Exercise"
 author: "Dhiraj Deshmukh"
 date: "26-Sept-2017"
-output: pdf_document
 ---
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
