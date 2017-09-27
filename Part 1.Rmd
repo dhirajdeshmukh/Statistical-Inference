@@ -11,71 +11,66 @@ library(ggplot2)
 ```
 
 
-## Overview
+The exponential distribution can be simulated in R with `rexp(n, lambda)` where `lambda` $\lambda$ is the rate parameter. The mean of exponential distribution is $1/\lambda$ and the standard deviation is also $1/\lambda$. For this simulation, we set $\lambda=0.2$. In this simulation, we investigate the distribution of averages of 40 numbers sampled from exponential distribution with $\lambda=0.2$.
 
-The exponential distribution can be simulated in R with the `rexp(n, lambda)` function where lambda $\lambda$ represents the rate parameter. The mean of an exponential distribution is $\mu = \frac{1}{\lambda}$ and the standard deviation is $\sigma = \frac{1}{\lambda}$. 
-
-According the central limit theorem if a sample consists of at least 30 independent observations and the data are not strongly changed, then the distribution of the sample mean, the sampling distribution, is well approximated by a normal model which expressed in mathematical notation is: $\bar{x}_{n}$ ~ $N(\mu, \frac{\sigma }{\sqrt{n}})$.
-
-In general, a sampling distribution represents the distribution of the point estimates based on samples of a fixed size from a certain population. It is useful to think of a particular point estimate as being drawn from such a distribution.
-
-In this analysis we will show that the sampling distribution of the mean of an exponential distribution with $n = 40$ observations and $\lambda = 0.2$ is indeed approximately $N(\frac{1}{0.2}, \frac{\frac{1}{0.2}}{\sqrt{40}})$ distributed.
-
-
-## Comparison of the sample mean and the theoretical mean of the distribution
-
-In the following we will draw 1000 samples of size 40 from an $Exp(\frac{1}{0.2}, \frac{1}{0.2})$ distribution. For each of the 1000 samples we will calculate the mean. Theoretically, this the same as drawing a single sample of size 1000 from the corresponding sampling distribution with $N(\frac{1}{0.2}, \frac{\frac{1}{0.2}}{\sqrt{40}})$.
-
-According to the control limit theorem we would expect that each single mean of those 1000 means is already  approximately $\frac{1}{\lambda} = \frac{1}{0.2} = 5$. Since we now caluculate the mean of 1000 sampled means we expect the output to be very close to 5.
-
-We will check if this is the case.
+Let's do a thousand simulated averages of 40 exponentials.
 
 ```{r}
-
 set.seed(3)
-
-exp_sample_means <- NULL
-for(i in 1:1000) {
-  exp_sample_means <- c(exp_sample_means, mean(rexp(40, 0.2)))
-}
-mean(exp_sample_means)
-
+lambda <- 0.2
+num_sim <- 1000
+sample_size <- 40
+sim <- matrix(rexp(num_sim*sample_size, rate=lambda), num_sim, sample_size)
+row_means <- rowMeans(sim)
 ```
 
-$\bar{x}$ in our case is `r round(mean(exp_sample_means), 2)` which is very close to the mean of the theoretical distribution namely $\mu = \frac{1}{0.2} = 5$.
+The distribution of sample means is as follows.
 
-
-## Comparison of the sample variance with the theoretical distribution
-
-According to the control limit theorem we would expect that the variance of the sample of the 1000 means is approximately $\frac{\frac{1}{0.2^{2}}}{40} = 0.625$.
-
-```{r}
-
-var(exp_sample_means)
-
+```{r echo=FALSE}
+# plot the histogram of averages
+hist(row_means, breaks=50, prob=TRUE,
+     main="Distribution of averages of samples,
+     drawn from exponential distribution with lambda=0.2",
+     xlab="")
+# density of the averages of samples
+lines(density(row_means))
+# theoretical center of distribution
+abline(v=1/lambda, col="red")
+# theoretical density of the averages of samples
+xfit <- seq(min(row_means), max(row_means), length=100)
+yfit <- dnorm(xfit, mean=1/lambda, sd=(1/lambda/sqrt(sample_size)))
+lines(xfit, yfit, pch=22, col="red", lty=2)
+# add legend
+legend('topright', c("simulation", "theoretical"), lty=c(1,2), col=c("black", "red"))
 ```
 
-$s^{2}$ in our case is `r round(var(exp_sample_means), 2)` which is close to the variance of the theoretical distribution we mentioned above.
+The distribution of sample means is centered at `r mean(row_means)` and the theoretical center of the distribution is $\lambda^{-1}$ = `r 1/lambda`. The variance of sample means is `r var(row_means)` where the theoretical variance of the distribution is $\sigma^2 / n = 1/(\lambda^2 n) = 1/(0.04 \times 40)$ = `r 1/(0.04 * 40)`.
 
-## Showing that the sample distribution is approximately normal
+Due to the central limit theorem, the averages of samples follow normal distribution. The figure above also shows the density computed using the histogram and the normal density plotted with theoretical mean and variance values. Also, the q-q plot below suggests the normality.
 
-In order to demonstrate that the sample distribution of the 1000 sampled means is approximately normal we will plot the correspondent histogram  and overlay it with the density function from the theoretical sampling distribution which is $N(\frac{1}{0.2}, \frac{\frac{1}{0.2}}{\sqrt{40}})$ distributed. 
-
-```{r fig.height=4, fig.width=4}
-
-data <- as.data.frame(exp_sample_means)
-ggplot(data, aes(x = exp_sample_means)) + 
-  geom_histogram(binwidth = 0.4, color = 'black', fill = 'white', aes(y = ..density..)) +
-  stat_function(aes(x = c(2, 8)), fun = dnorm, color = 'red', 
-                args = list(mean = 5, sd = sqrt(0.625))) +
-  xlab('Sample mean') +
-  ylab('Density') +
-  ggtitle('Simulation Exercise')
-
+```{r echo=FALSE}
+qqnorm(row_means); qqline(row_means)
 ```
 
-## Conclusion
+Finally, let's evaluate the coverage of the confidence interval for $1/\lambda = \bar{X} \pm 1.96 \frac{S}{\sqrt{n}}$
 
-In this analysis we showed that the sampling distribution of the mean of an exponential distribution with $n = 40$ observations and $\lambda = 0.2$ is approximately $N(\frac{1}{0.2}, \frac{\frac{1}{0.2}}{\sqrt{40}})$ distributed.
+```{r echo=FALSE}
+lambda_vals <- seq(4, 6, by=0.01)
+coverage <- sapply(lambda_vals, function(lamb) {
+    mu_hats <- rowMeans(matrix(rexp(sample_size*num_sim, rate=0.2),
+                               num_sim, sample_size))
+    ll <- mu_hats - qnorm(0.975) * sqrt(1/lambda**2/sample_size)
+    ul <- mu_hats + qnorm(0.975) * sqrt(1/lambda**2/sample_size)
+    mean(ll < lamb & ul > lamb)
+})
 
+library(ggplot2)
+qplot(lambda_vals, coverage) + geom_hline(yintercept=0.95)
+```
 
+The 95% confidence intervals for the rate parameter ($\lambda$) to be estimated ($\hat{\lambda}$) are 
+$\hat{\lambda}_{low} = \hat{\lambda}(1 - \frac{1.96}{\sqrt{n}})$ agnd
+$\hat{\lambda}_{upp} = \hat{\lambda}(1 + \frac{1.96}{\sqrt{n}})$.
+As can be seen from the plot above, for selection of $\hat{\lambda}$ around 5,
+the average of the sample mean falls within the confidence interval at least 95% of the time.
+Note that the true rate, $\lambda$ is 5.
