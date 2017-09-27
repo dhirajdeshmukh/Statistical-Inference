@@ -2,6 +2,10 @@
 title: "Part 1: Simulation Exercise"
 author: "Dhiraj Deshmukh"
 date: "26-Sept-2017"
+output:
+  pdf_document:
+    fig_height: 4
+  html_document: default
 ---
 
 ```{r echo = FALSE, message=FALSE, warning=FALSE}
